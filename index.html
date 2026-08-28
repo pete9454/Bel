@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b2430;
+    --ink-2: #2c394a;
+    --paper: #efe9db;
+    --paper-2: #e4dcc8;
+    --rule: #c9bfa4;
+    --brass: #b8892b;
+    --teal: #3a6b63;
+    --danger: #a8462f;
+    --neutral: #8a8378;
+    --font-display: 'Fraunces', serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ink);
+    background-image: radial-gradient(circle at 20% 0%, var(--ink-2), var(--ink) 60%);
+    color: var(--paper);
+    font-family: var(--font-body);
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 60px;
+    min-height: 100vh;
+  }
+
+  .wrap { width: 100%; max-width: 640px; }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(239,233,219,0.18);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+
+  .entry-form {
+    background: var(--paper);
+    border-radius: 3px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    margin-bottom: 22px;
+  }
+
+  .entry-form label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+  }
+
+  .row { display: flex; gap: 8px; }
+
+  input[type="text"] {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 15px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: #fbf9f3;
+    color: var(--ink);
+  }
+
+  input[type="text"]:focus {
+    outline: 2px solid var(--teal);
+    outline-offset: 1px;
+  }
+
+  button {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    border: none;
+    border-radius: 2px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: transform 0.08s ease, opacity 0.15s ease;
+  }
+
+  button:active { transform: translateY(1px); }
+
+  .btn-log { background: var(--brass); color: #211405; font-weight: 500; }
+  .btn-log:hover { opacity: 0.92; }
+
+  .reaction-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .reaction-row > label {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .reaction-options {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .reaction-opt {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    padding: 7px 10px;
+    border-radius: 2px;
+    border: 1px solid var(--rule);
+    background: #fbf9f3;
+    color: var(--ink-2);
+  }
+
+  .reaction-opt:hover { border-color: var(--teal); }
+
+  .reaction-opt.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  .reaction-opt[data-val="Mild"].active { background: var(--teal); border-color: var(--teal); }
+  .reaction-opt[data-val="Medium"].active { background: var(--brass); border-color: var(--brass); color: #211405; }
+  .reaction-opt[data-val="Severe"].active { background: var(--danger); border-color: var(--danger); }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(239,233,219,0.55);
+  }
+
+  .btn-export {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid rgba(239,233,219,0.4);
+  }
+  .btn-export:hover { border-color: var(--teal); color: var(--teal); }
+  .btn-export:disabled { opacity: 0.35; cursor: default; }
+
+  .log {
+    background: var(--paper);
+    border-radius: 3px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    overflow: hidden;
+  }
+
+  .entry {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .entry:nth-child(even) { background: var(--paper-2); }
+  .entry:last-child { border-bottom: none; }
+
+  .stamp {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--teal);
+    white-space: nowrap;
+    padding-top: 3px;
+  }
+
+  .entry-text {
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    color: var(--ink);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .reaction-badge {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+    height: fit-content;
+    color: var(--paper);
+    background: var(--neutral);
+  }
+
+  .reaction-badge.mild { background: var(--teal); }
+  .reaction-badge.medium { background: var(--brass); color: #211405; }
+  .reaction-badge.severe { background: var(--danger); }
+
+  .empty {
+    padding: 34px 16px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: rgba(27,36,48,0.5);
+  }
+
+  .status {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: rgba(239,233,219,0.55);
+    min-height: 14px;
+  }
+
+  .footnote {
+    margin-top: 24px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: rgba(239,233,219,0.35);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+  @media (max-width: 380px) {
+    .reaction-options { gap: 4px; }
+    .reaction-opt { padding: 6px 7px; font-size: 10.5px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Event Log</h1>
+    <span class="tag">Daily Activity</span>
+  </header>
+
+  <form class="entry-form" id="entryForm">
+    <label for="entryInput">What happened</label>
+    <div class="row">
+      <input type="text" id="entryInput" placeholder="Ate a hamburger for breakfast" autocomplete="off" />
+      <button type="submit" class="btn-log">Log it</button>
+    </div>
+
+    <div class="reaction-row">
+      <label>Reaction</label>
+      <div class="reaction-options" id="reactionOptions">
+        <button type="button" class="reaction-opt active" data-val="None">None</button>
+        <button type="button" class="reaction-opt" data-val="Mild">Mild</button>
+        <button type="button" class="reaction-opt" data-val="Medium">Medium</button>
+        <button type="button" class="reaction-opt" data-val="Severe">Severe</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="toolbar">
+    <span class="count" id="count">0 entries</span>
+    <button class="btn-export" id="exportBtn" disabled>Download CSV</button>
+  </div>
+
+  <div class="log" id="log">
+    <div class="empty">Nothing logged yet.</div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="footnote">Stored only on this device, in this browser.<br>Clearing browser data will erase entries — export the CSV to back up.</div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'fieldLogEntries';
+  const form = document.getElementById('entryForm');
+  const input = document.getElementById('entryInput');
+  const logEl = document.getElementById('log');
+  const countEl = document.getElementById('count');
+  const exportBtn = document.getElementById('exportBtn');
+  const statusEl = document.getElementById('status');
+  const reactionOptions = document.getElementById('reactionOptions');
+
+  let entries = [];
+  let selectedReaction = 'None';
+
+  reactionOptions.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.reaction-opt');
+    if (!btn) return;
+    reactionOptions.querySelectorAll('.reaction-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Store the textContent of the selected option, not a separate value attribute.
+    selectedReaction = btn.textContent.trim();
+  });
+
+  function resetReactionSelector() {
+    reactionOptions.querySelectorAll('.reaction-opt').forEach(b => b.classList.remove('active'));
+    const noneBtn = reactionOptions.querySelector('[data-val="None"]');
+    noneBtn.classList.add('active');
+    selectedReaction = noneBtn.textContent.trim();
+  }
+
+  function loadEntries() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      entries = raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      entries = [];
+      statusEl.textContent = 'Could not read saved entries.';
+    }
+  }
+
+  function saveEntries() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      return true;
+    } catch (err) {
+      statusEl.textContent = 'Save failed — storage may be full.';
+      return false;
+    }
+  }
+
+  function fmtStamp(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function reactionClass(reaction) {
+    const r = (reaction || 'None').toLowerCase();
+    if (r === 'mild') return 'mild';
+    if (r === 'medium') return 'medium';
+    if (r === 'severe') return 'severe';
+    return '';
+  }
+
+  function render() {
+    if (entries.length === 0) {
+      logEl.innerHTML = '<div class="empty">Nothing logged yet.</div>';
+    } else {
+      logEl.innerHTML = entries.map(e => `
+        <div class="entry" data-id="${e.id}">
+          <span class="stamp">${fmtStamp(e.iso)}</span>
+          <span class="entry-text"></span>
+          <span class="reaction-badge ${reactionClass(e.reaction)}"></span>
+        </div>
+      `).join('');
+      logEl.querySelectorAll('.entry').forEach(row => {
+        const id = row.getAttribute('data-id');
+        const e = entries.find(x => x.id === id);
+        row.querySelector('.entry-text').textContent = e.entry;
+        row.querySelector('.reaction-badge').textContent = e.reaction || 'None';
+      });
+    }
+    countEl.textContent = entries.length === 1 ? '1 entry' : `${entries.length} entries`;
+    exportBtn.disabled = entries.length === 0;
+  }
+
+  function addEntry(text, reaction) {
+    const now = new Date();
+    const id = now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
+    entries.push({ id, iso: now.toISOString(), entry: text, reaction: reaction });
+    entries.sort((a, b) => new Date(a.iso) - new Date(b.iso));
+    if (saveEntries()) {
+      render();
+      statusEl.textContent = 'Saved.';
+      setTimeout(() => { if (statusEl.textContent === 'Saved.') statusEl.textContent = ''; }, 1500);
+    }
+  }
+
+  function csvEscape(val) {
+    const s = String(val);
+    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function downloadCSV() {
+    const rows = [['Timestamp', 'Entry', 'Reaction']];
+    entries.forEach(e => rows.push([e.iso, e.entry, e.reaction || 'None']));
+    const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `activity-log-${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    addEntry(text, selectedReaction);
+    resetReactionSelector();
+  });
+
+  exportBtn.addEventListener('click', downloadCSV);
+
+  loadEntries();
+  render();
+</script>
+</body>
+</html>
