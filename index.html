@@ -179,6 +179,26 @@
   .btn-export:hover { border-color: var(--teal); color: var(--teal); }
   .btn-export:disabled { opacity: 0.35; cursor: default; }
 
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-sort {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid rgba(239,233,219,0.4);
+    font-size: 12px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn-sort:hover { border-color: var(--teal); color: var(--teal); }
+  .btn-sort .arrow { display: inline-block; transition: transform 0.15s ease; }
+  .btn-sort.desc .arrow { transform: rotate(180deg); }
+
   .log {
     background: var(--paper);
     border-radius: 3px;
@@ -290,7 +310,12 @@
 
   <div class="toolbar">
     <span class="count" id="count">0 entries</span>
-    <button class="btn-export" id="exportBtn" disabled>Download CSV</button>
+    <div class="toolbar-right">
+      <button class="btn-sort" id="sortBtn" title="Toggle sort order">
+        <span class="arrow">↑</span><span id="sortLabel">Oldest</span>
+      </button>
+      <button class="btn-export" id="exportBtn" disabled>Download CSV</button>
+    </div>
   </div>
 
   <div class="log" id="log">
@@ -311,9 +336,12 @@
   const exportBtn = document.getElementById('exportBtn');
   const statusEl = document.getElementById('status');
   const reactionOptions = document.getElementById('reactionOptions');
+  const sortBtn = document.getElementById('sortBtn');
+  const sortLabel = document.getElementById('sortLabel');
 
   let entries = [];
   let selectedReaction = 'None';
+  let sortDesc = false; // false = oldest first, true = newest first
 
   reactionOptions.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.reaction-opt');
@@ -371,7 +399,11 @@
     if (entries.length === 0) {
       logEl.innerHTML = '<div class="empty">Nothing logged yet.</div>';
     } else {
-      logEl.innerHTML = entries.map(e => `
+      const displayEntries = entries.slice().sort((a, b) => {
+        const diff = new Date(a.iso) - new Date(b.iso);
+        return sortDesc ? -diff : diff;
+      });
+      logEl.innerHTML = displayEntries.map(e => `
         <div class="entry" data-id="${e.id}">
           <span class="stamp">${fmtStamp(e.iso)}</span>
           <span class="entry-text"></span>
@@ -388,6 +420,17 @@
     countEl.textContent = entries.length === 1 ? '1 entry' : `${entries.length} entries`;
     exportBtn.disabled = entries.length === 0;
   }
+
+  function updateSortLabel() {
+    sortLabel.textContent = sortDesc ? 'Newest' : 'Oldest';
+    sortBtn.classList.toggle('desc', sortDesc);
+  }
+
+  sortBtn.addEventListener('click', () => {
+    sortDesc = !sortDesc;
+    updateSortLabel();
+    render();
+  });
 
   function addEntry(text, reaction) {
     const now = new Date();
@@ -435,6 +478,7 @@
   exportBtn.addEventListener('click', downloadCSV);
 
   loadEntries();
+  updateSortLabel();
   render();
 </script>
 </body>
