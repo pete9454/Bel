@@ -83,6 +83,35 @@
 
   .row { display: flex; gap: 8px; }
 
+  .offset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .offset-row label {
+    margin-bottom: 0;
+    flex: 1;
+  }
+
+  input[type="number"] {
+    width: 64px;
+    flex: 0 0 auto;
+    font-family: var(--font-body);
+    font-size: 15px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: #fbf9f3;
+    color: var(--ink);
+  }
+
+  input[type="number"]:focus {
+    outline: 2px solid var(--teal);
+    outline-offset: 1px;
+  }
+
   input[type="text"] {
     flex: 1;
     font-family: var(--font-body);
@@ -297,6 +326,11 @@
       <button type="submit" class="btn-log">Log it</button>
     </div>
 
+    <div class="offset-row">
+      <label for="offsetInput">How many minutes late the entry is being made</label>
+      <input type="number" id="offsetInput" placeholder="0" autocomplete="off" />
+    </div>
+
     <div class="reaction-row">
       <label>Reaction</label>
       <div class="reaction-options" id="reactionOptions">
@@ -329,8 +363,10 @@
 
 <script>
   const STORAGE_KEY = 'fieldLogEntries';
+  const SORT_KEY = 'fieldLogSortDesc';
   const form = document.getElementById('entryForm');
   const input = document.getElementById('entryInput');
+  const offsetInput = document.getElementById('offsetInput');
   const logEl = document.getElementById('log');
   const countEl = document.getElementById('count');
   const exportBtn = document.getElementById('exportBtn');
@@ -342,6 +378,22 @@
   let entries = [];
   let selectedReaction = 'None';
   let sortDesc = false; // false = oldest first, true = newest first
+
+  function loadSortOrder() {
+    try {
+      sortDesc = localStorage.getItem(SORT_KEY) === 'true';
+    } catch (err) {
+      sortDesc = false;
+    }
+  }
+
+  function saveSortOrder() {
+    try {
+      localStorage.setItem(SORT_KEY, String(sortDesc));
+    } catch (err) {
+      // Non-fatal: sort preference just won't persist this time.
+    }
+  }
 
   reactionOptions.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.reaction-opt');
@@ -428,12 +480,13 @@
 
   sortBtn.addEventListener('click', () => {
     sortDesc = !sortDesc;
+    saveSortOrder();
     updateSortLabel();
     render();
   });
 
-  function addEntry(text, reaction) {
-    const now = new Date();
+  function addEntry(text, reaction, offsetMinutes) {
+    const now = new Date(Date.now() - offsetMinutes * 60000);
     const id = now.getTime().toString(36) + Math.random().toString(36).slice(2, 6);
     entries.push({ id, iso: now.toISOString(), entry: text, reaction: reaction });
     entries.sort((a, b) => new Date(a.iso) - new Date(b.iso));
@@ -470,14 +523,19 @@
     ev.preventDefault();
     const text = input.value.trim();
     if (!text) return;
+    const rawOffset = offsetInput.value.trim();
+    const parsedOffset = rawOffset === '' ? 0 : Number(rawOffset);
+    const offsetMinutes = Number.isFinite(parsedOffset) ? Math.abs(parsedOffset) : 0;
     input.value = '';
-    addEntry(text, selectedReaction);
+    offsetInput.value = '';
+    addEntry(text, selectedReaction, offsetMinutes);
     resetReactionSelector();
   });
 
   exportBtn.addEventListener('click', downloadCSV);
 
   loadEntries();
+  loadSortOrder();
   updateSortLabel();
   render();
 </script>
